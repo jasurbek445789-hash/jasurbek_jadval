@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aqlli Dars Jadvali Generator - Mukammal Aralash Ta'minot</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        h1, h2, h3 { color: #2c3e50; text-align: center; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; }
+        
+        .form-group { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 15px; }
+        .form-group label { font-weight: bold; }
+        input[type="text"], input[type="number"], input[type="password"], select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; flex: 1; min-width: 150px; }
+        
+        .checkbox-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .checkbox-group label { font-weight: normal; background: #eee; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .checkbox-group input { margin-right: 5px; }
+
+        button { background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        button:hover { background-color: #219150; }
+        button.btn-danger { background-color: #e74c3c; }
+        button.btn-danger:hover { background-color: #c0392b; }
+        button.btn-warning { background-color: #f39c12; }
+        button.btn-warning:hover { background-color: #d68910; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #34495e; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        .teacher-card { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 15px; border: 1px solid #ddd; margin-bottom: 8px; border-radius: 6px; }
+        .replacement-alert { background: #e8f8f5; border-left: 5px solid #1abc9c; padding: 15px; margin-top: 15px; border-radius: 4px; }
+
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.9); display: flex; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 10px; width: 350px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); text-align: center;
+        }
+        .login-box input { width: 100%; margin-bottom: 15px; padding: 10px; }
+        .login-box button { width: 100%; }
+        .error-msg { color: #e74c3c; margin-bottom: 10px; font-size: 14px; }
+        
+        #mainApp { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN OYNASI -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2> Tizimga kirish</h2>
+            <p style="color: #666; font-size: 14px;">Davom etish uchun admin ma'lumotlarini kiriting</p>
+            <div id="errorMsg" class="error-msg"></div>
+            <input type="text" id="adminUser" placeholder="Admin login (admin)" required>
+            <input type="password" id="adminPass" placeholder="Parol (12345)" required>
+            <button onclick="checkLogin()">Kirish</button>
+        </div>
+    </div>
+
+    <!-- ASOSIY DASTUR OYNASI -->
+    <div class="container" id="mainApp">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h1> Aqlli Haftalik Dars Jadvali</h1>
+            <div>
+                <button class="btn-danger" onclick="clearAllData()" style="padding: 6px 12px; font-size: 14px; margin-right: 5px;"> Ma'lumotlarni tozalash</button>
+                <button class="btn-warning" onclick="logout()" style="padding: 6px 12px; font-size: 14px;">Chiqish </button>
+            </div>
+        </div>
+
+        <!-- 1. O'qituvchi qo'shish bo'limi -->
+        <div class="section">
+            <h2>1. Oʻqituvchilar va Dars Soatlarini Kiritish</h2>
+            <form id="teacherForm">
+                <div class="form-group">
+                    <input type="text" id="tName" placeholder="Oʻqituvchi F.I.Sh" required>
+                    <input type="text" id="tSubject" placeholder="Fan nomi (masalan: Fizika)" required>
+                    <input type="number" id="tHours" placeholder="Haftalik dars soati" min="1" max="30" required>
+                    <input type="text" id="tClasses" placeholder="Sinflar (masalan: 5-A, 6-B)" required>
+                </div>
+                <div class="form-group">
+                    <label>Kelishi mumkin boʻlgan kunlar:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="days" value="Dushanba" checked> Dush</label>
+                        <label><input type="checkbox" name="days" value="Seshanba" checked> Sesh</label>
+                        <label><input type="checkbox" name="days" value="Chorshanba" checked> Chor</label>
+                        <label><input type="checkbox" name="days" value="Payshanba" checked> Pay</label>
+                        <label><input type="checkbox" name="days" value="Juma" checked> Jum</label>
+                        <label><input type="checkbox" name="days" value="Shanba" checked> Shan</label>
+                    </div>
+                </div>
+                <button type="submit"> Oʻqituvchini qoʻshish</button>
+            </form>
+
+            <h3>Roʻyxatga olingan oʻqituvchilar:</h3>
+            <div id="teachersList"></div>
+        </div>
+
+        <!-- 2. Jadval tuzish bo'limi -->
+        <div class="section" style="text-align: center;">
+            <h2>2. Haftalik Jadvalni Generatsiya Qilish</h2>
+            <p>Barcha oʻqituvchilar darslari kunlar boʻyicha muvozanatli va aralash holatda taqsimlanadi.</p>
+            <button onclick="generateSchedule()" style="font-size: 18px; padding: 12px 30px;"> Dars Jadvalini Tuzish</button>
+        </div>
+
+        <!-- 3. Favqulodda Holat (Kelolmagan o'qituvchi) -->
+        <div class="section" style="background-color: #fff9e6; border-color: #ffe0b2;">
+            <h2>3.  Oʻqituvchi kelolmay qolganda darsni almashtirish</h2>
+            <div class="form-group">
+                <select id="absentTeacherSelect">
+                    <option value="">Kelolmagan oʻqituvchini tanlang...</option>
+                </select>
+                <select id="absentDaySelect">
+                    <option value="Dushanba">Dushanba</option>
+                    <option value="Seshanba">Seshanba</option>
+                    <option value="Chorshanba">Chorshanba</option>
+                    <option value="Payshanba">Payshanba</option>
+                    <option value="Juma">Juma</option>
+                    <option value="Shanba">Shanba</option>
+                </select>
+                <button class="btn-warning" onclick="handleAbsence()"> Darslarni boshqalarga boʻlib berish</button>
+            </div>
+            <div id="replacementLog"></div>
+        </div>
+
+        <!-- 4. Natijalar ko'rinishi -->
+        <div class="section">
+            <h2> Haftalik Dars Jadvali</h2>
+            <div id="scheduleOutput">Dars jadvali hali tuzilmadi.</div>
+        </div>
+    </div>
+
+<script>
+    const CORRECT_USER = "admin";
+    const CORRECT_PASS = "12345";
+
+    function checkLogin() {
+        const userInput = document.getElementById('adminUser').value;
+        const passInput = document.getElementById('adminPass').value;
+        const errorMsg = document.getElementById('errorMsg');
+
+        if (userInput === CORRECT_USER && passInput === CORRECT_PASS) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            loadData();
+        } else {
+            errorMsg.innerText = "Login yoki parol xato!";
+        }
+    }
+
+    function logout() {
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('adminUser').value = '';
+        document.getElementById('adminPass').value = '';
+        document.getElementById('errorMsg').innerText = '';
+    }
+
+    document.getElementById('adminPass').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') checkLogin();
+    });
+
+    let teachers = [];
+    let globalSchedule = {};
+    const days = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
+    const maxLessonsPerDay = 6;
+
+    function saveData() {
+        localStorage.setItem('schedule_teachers_v2', JSON.stringify(teachers));
+        localStorage.setItem('schedule_global_v2', JSON.stringify(globalSchedule));
+    }
+
+    function loadData() {
+        const savedTeachers = localStorage.getItem('schedule_teachers_v2');
+        const savedSchedule = localStorage.getItem('schedule_global_v2');
+
+        if (savedTeachers) {
+            teachers = JSON.parse(savedTeachers);
+            updateTeachersUI();
+        }
+
+        if (savedSchedule) {
+            globalSchedule = JSON.parse(savedSchedule);
+            if (Object.keys(globalSchedule).length > 0) {
+                renderSchedule();
+            }
+        }
+    }
+
+    function clearAllData() {
+        if (confirm("Haqiqatan ham hamma ma'lumotlarni oʻchirib yubormoqchimisiz?")) {
+            localStorage.removeItem('schedule_teachers_v2');
+            localStorage.removeItem('schedule_global_v2');
+            teachers = [];
+            globalSchedule = {};
+            updateTeachersUI();
+            document.getElementById('scheduleOutput').innerHTML = 'Dars jadvali hali tuzilmadi.';
+            document.getElementById('replacementLog').innerHTML = '';
+            alert("Ma'lumotlar tozalandi!");
+        }
+    }
+
+    document.getElementById('teacherForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('tName').value.trim();
+        const subject = document.getElementById('tSubject').value.trim();
+        const hours = parseInt(document.getElementById('tHours').value);
+        const classes = document.getElementById('tClasses').value.split(',').map(c => c.trim().toUpperCase());
+        const selectedDays = Array.from(document.querySelectorAll('input[name="days"]:checked')).map(cb => cb.value);
+
+        if (selectedDays.length === 0) {
+            alert("Kamida bitta kunni tanlang!");
+            return;
+        }
+
+        const teacher = {
+            id: Date.now() + Math.random(),
+            name,
+            subject,
+            hours,
+            classes,
+            availableDays: selectedDays
+        };
+
+        teachers.push(teacher);
+        saveData();
+        updateTeachersUI();
+        this.reset();
+        document.querySelectorAll('input[name="days"]').forEach(cb => cb.checked = true);
+    });
+
+    function updateTeachersUI() {
+        const list = document.getElementById('teachersList');
+        const absentSelect = document.getElementById('absentTeacherSelect');
+        
+        list.innerHTML = '';
+        absentSelect.innerHTML = '<option value="">Kelolmagan oʻqituvchini tanlang...</option>';
+
+        teachers.forEach((t, index) => {
+            list.innerHTML += `
+                <div class="teacher-card">
+                    <div>
+                        <strong>${t.name}</strong> (${t.subject}) - <b>${t.hours} soat</b>
+                        <br><small>Sinflar: ${t.classes.join(', ')} | Kunlar: ${t.availableDays.join(', ')}</small>
+                    </div>
+                    <button class="btn-danger" onclick="deleteTeacher(${index})">Oʻchirish</button>
+                </div>
+            `;
+            absentSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.subject})</option>`;
+        });
+    }
+
+    function deleteTeacher(index) {
+        teachers.splice(index, 1);
+        saveData();
+        updateTeachersUI();
+    }
+
+    function getAllClasses() {
+        let classesSet = new Set();
+        teachers.forEach(t => t.classes.forEach(c => classesSet.add(c)));
+        return Array.from(classesSet);
+    }
+
+    // Mukammal muvozanatlashgan va aralash taqsimot algoritmi
+    function generateSchedule() {
+        if (teachers.length === 0) {
+            alert("Iltimos, avval oʻqituvchilarni kiriting!");
+            return;
+        }
+
+        const allClasses = getAllClasses();
+        globalSchedule = {};
+
+        // Struktura tayyorlash
+        allClasses.forEach(cls => {
+            globalSchedule[cls] = {};
+            days.forEach(day => {
+                globalSchedule[cls][day] = Array(maxLessonsPerDay).fill(null);
+            });
+        });
+
+        // Har bir sinf bo'yicha kerakli dars elementlarini ro'yxatga yig'amiz
+        allClasses.forEach(cls => {
+            let classLessonsPool = [];
+            
+            teachers.forEach(t => {
+                if (t.classes.includes(cls)) {
+                    for (let i = 0; i < t.hours; i++) {
+                        classLessonsPool.push({
+                            teacherId: t.id,
+                            name: t.name,
+                            subject: t.subject,
+                            availableDays: t.availableDays
+                        });
+                    }
+                }
+            });
+
+            // Fanlar bir xil ketma-ket kelib qolmasligi uchun ro'yxatni aralashtiramiz (shuffle)
+            classLessonsPool.sort(() => Math.random() - 0.5);
+
+            // Kunlar va soatlar bo'yicha taqsimlash
+            days.forEach((day, dayIndex) => {
+                for (let slot = 0; slot < maxLessonsPerDay; slot++) {
+                    if (classLessonsPool.length === 0) break;
+
+                    // Shu kunga to'g'ri keladigan darsni topamiz
+                    let lessonIndex = classLessonsPool.findIndex(l => l.availableDays.includes(day));
+                    if (lessonIndex === -1) lessonIndex = 0; // Agar mos kun topilmasa istalganini olamiz
+
+                    let lesson = classLessonsPool[lessonIndex];
+
+                    // Parallel to'qnashuvni tekshiramiz: 
+                    // Bu o'qituvchi ayni shu kuni va shu soatda boshqa sinfda dars o'tmayotgan bo'lishi kerak!
+                    let isTeacherBusyElsewhere = false;
+                    allClasses.forEach(otherCls => {
+                        if (otherCls !== cls) {
+                            let existing = globalSchedule[otherCls][day][slot];
+                            if (existing && existing.teacherId === lesson.teacherId) {
+                                isTeacherBusyElsewhere = true;
+                            }
+                        }
+                    });
+
+                    // Agar o'qituvchi band bo'lmasa, shu soatga qo'yamiz
+                    if (!isTeacherBusyElsewhere) {
+                        globalSchedule[cls][day][slot] = {
+                            subject: lesson.subject,
+                            teacher: lesson.name,
+                            teacherId: lesson.teacherId
+                        };
+                        classLessonsPool.splice(lessonIndex, 1);
+                    }
+                }
+            });
+        });
+
+        saveData();
+        renderSchedule();
+        alert("Dars jadvali muvaffaqiyatli va aralash tartibda tuzildi!");
+    }
+
+    function renderSchedule() {
+        const output = document.getElementById('scheduleOutput');
+        output.innerHTML = '';
+        const allClasses = getAllClasses();
+
+        allClasses.forEach(cls => {
+            let html = `<h3> Sinf: ${cls}</h3><table><thead><tr><th>Soat / Kun</th>`;
+            days.forEach(day => html += `<th>${day}</th>`);
+            html += `</tr></thead><tbody>`;
+
+            for (let slot = 0; slot < maxLessonsPerDay; slot++) {
+                html += `<tr><td><b>${slot + 1}-dars</b></td>`;
+                days.forEach(day => {
+                    const lesson = globalSchedule[cls][day][slot];
+                    if (lesson) {
+                        html += `<td><b>${lesson.subject}</b><br><small style="color:#555;">${lesson.teacher}</small></td>`;
+                    } else {
+                        html += `<td style="color:#ccc;">—</td>`;
+                    }
+                });
+                html += `</tr>`;
+            }
+            html += `</tbody></table><br>`;
+            output.innerHTML += html;
+        });
+    }
+
+    function handleAbsence() {
+        const teacherId = parseFloat(document.getElementById('absentTeacherSelect').value);
+        const absentDay = document.getElementById('absentDaySelect').value;
+        const logDiv = document.getElementById('replacementLog');
+
+        if (!teacherId) {
+            alert("Kelolmagan oʻqituvchini tanlang!");
+            return;
+        }
+
+        const absentTeacher = teachers.find(t => t.id === teacherId);
+        let replacementsMade = [];
+        const allClasses = getAllClasses();
+
+        allClasses.forEach(cls => {
+            for (let slot = 0; slot < maxLessonsPerDay; slot++) {
+                const currentLesson = globalSchedule[cls][absentDay][slot];
+                
+                if (currentLesson && currentLesson.teacherId === teacherId) {
+                    let replacementTeacher = teachers.find(t => {
+                        if (t.id === teacherId) return false;
+                        if (!t.availableDays.includes(absentDay)) return false;
+                        
+                        let isBusy = allClasses.some(c => 
+                            globalSchedule[c][absentDay][slot] && globalSchedule[c][absentDay][slot].teacherId === t.id
+                        );
+                        return !isBusy;
+                    });
+
+                    if (replacementTeacher) {
+                        globalSchedule[cls][absentDay][slot] = {
+                            subject: replacementTeacher.subject + " (Oʻrinbosar)",
+                            teacher: replacementTeacher.name,
+                            teacherId: replacementTeacher.id
+                        };
+                        replacementsMade.push(`<b>${cls}</b> sinfining <b>${slot+1}-darsiga</b> ${absentTeacher.name} oʻrniga <b>${replacementTeacher.name} (${replacementTeacher.subject})</b> qoʻyildi.`);
+                    } else {
+                        globalSchedule[cls][absentDay][slot] = null;
+                        replacementsMade.push(`<b>${cls}</b> sinfining <b>${slot+1}-darsiga</b> mos boʻsh oʻqituvchi topilmadi.`);
+                    }
+                }
+            }
+        });
+
+        if (replacementsMade.length > 0) {
+            logDiv.innerHTML = `
+                <div class="replacement-alert">
+                    <h4> Almashtirish natijalari (${absentDay} kuni - ${absentTeacher.name} uchun):</h4>
+                    <ul>${replacementsMade.map(r => `<li>${r}</li>`).join('')}</ul>
+                </div>
+            `;
+            saveData();
+            renderSchedule();
+        } else {
+            logDiv.innerHTML = `<div class="replacement-alert">Ushbu kun (${absentDay}) uchun ${absentTeacher.name} ning darslari topilmadi.</div>`;
+        }
+    }
+</script>
+
+</body>
+</html>
